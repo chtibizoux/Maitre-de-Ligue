@@ -85,6 +85,9 @@ bot.on('message', (message) => {
         if (message.content.split(" ").length === 3) {
             var quantity = parseInt(message.content.split(" ")[1]);
             var name = message.content.split(" ")[2];
+            if (name.length > 0) {
+                name = name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
+            }
             if (name in guilds[message.guild.id].objects) {
                 if (guilds[message.guild.id].objects[name].buyable) {
                     var object = guilds[message.guild.id].objects[name];
@@ -108,6 +111,9 @@ bot.on('message', (message) => {
             }
         }else if (message.content.split(" ").length === 2) {
             var name = message.content.split(" ")[1];
+            if (name.length > 0) {
+                name = name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
+            }
             if (name in guilds[message.guild.id].objects) {
                 if (guilds[message.guild.id].objects[name].buyable) {
                     var object = guilds[message.guild.id].objects[name];
@@ -136,6 +142,9 @@ bot.on('message', (message) => {
     }else if (message.content.startsWith("!use") || message.content.startsWith("!u")) {
         if (message.content.split(" ")[1]) {
             var name = message.content.split(" ")[1];
+            if (name.length > 0) {
+                name = name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
+            }
             if (name in guilds[message.guild.id].objects) {
                 var object = guilds[message.guild.id].objects[name];
                 var user = guilds[message.guild.id].users[message.author.id];
@@ -170,8 +179,12 @@ bot.on('message', (message) => {
         fs.writeFileSync('./guilds.json', JSON.stringify(guilds));
     }else if (message.content.startsWith("!info") || message.content.startsWith("!i")) {
         if (message.guild.id in guilds) {
-            if (message.content.slice(6) in guilds[message.guild.id].objects) {
-                message.channel.send(guilds[message.guild.id].objects[message.content.slice(6)].description);
+            var name = message.content.split(" ")[1];
+            if (name.length > 0) {
+                name = name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
+            }
+            if (name in guilds[message.guild.id].objects) {
+                message.channel.send(guilds[message.guild.id].objects[name].description);
             }else {
                 message.channel.send("Il n'y a aucun item avec ce nom");
             }
@@ -301,6 +314,9 @@ bot.on('message', (message) => {
         }else if (message.content.startsWith("!admin-add-item")) {
             if (message.content.split(" ").length >= 5) {
                 var name = message.content.split(" ")[1];
+                if (name.length > 0) {
+                    name = name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
+                }
                 if (isNaN(message.content.split(" ")[4])) {
                     message.channel.send("La commande n'est pas valide");
                     return;
@@ -331,10 +347,14 @@ bot.on('message', (message) => {
                 message.channel.send("La commande n'est pas valide");
             }
         }else if (message.content.startsWith("!admin-remove-item")) {
-            if (message.content.slice(19) in guilds[message.guild.id].objects) {
-                delete guilds[message.guild.id].objects[message.content.slice(19)];
+            var name = message.content.split(" ")[1];
+            if (name.length > 0) {
+                name = name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
+            }
+            if (message.content.split(" ")[1] in guilds[message.guild.id].objects) {
+                delete guilds[message.guild.id].objects[message.content.split(" ")[1]];
                 fs.writeFileSync('./guilds.json', JSON.stringify(guilds));
-                message.channel.send("L' item " + message.content.slice(19) + " a été supprimer");
+                message.channel.send("L' item " + message.content.split(" ")[1] + " a été supprimer");
             }else {
                 message.channel.send("Il n'y a aucun item avec ce nom");
             }
@@ -372,6 +392,9 @@ bot.on('message', (message) => {
                 for (userID in guilds[message.guild.id].users) {
                     var count = parseInt(message.content.split(" ")[1]);
                     var item = message.content.split(" ")[2];
+                    if (item.length > 0) {
+                        item = item.charAt(0).toUpperCase() + item.slice(1).toLowerCase();
+                    }
                     if (item in guilds[message.guild.id].users[userID].objects) {
                         guilds[message.guild.id].users[userID].objects[item] += count;
                     }else {
@@ -386,6 +409,9 @@ bot.on('message', (message) => {
             }else if (message.content.split(" ").length === 4 && message.mentions.users.first()) {
                 var count = parseInt(message.content.split(" ")[1]);
                 var item = message.content.split(" ")[2];
+                if (item.length > 0) {
+                    item = item.charAt(0).toUpperCase() + item.slice(1).toLowerCase();
+                }
                 if (item in guilds[message.guild.id].users[message.mentions.users.first().id].objects) {
                     guilds[message.guild.id].users[message.mentions.users.first().id].objects[item] += count;
                 }else {
@@ -403,31 +429,51 @@ bot.on('message', (message) => {
     }
 });
 async function leaderboard(message) {
-    var msg = "__**Leader board:**__\n";
-    var usersInOrder = [];
-    for (var key in guilds[message.guild.id].users) {
-        var count = usersInOrder.length;
+    if (message.content.split(" ").length === 2 && message.content.split(" ")[1] !== "") {
+        var msg = "__**Leader board:**__\n";
+        var usersInOrder = [];
+        for (var key in guilds[message.guild.id].users) {
+            var count = usersInOrder.length;
+            for (var i = 0; i < usersInOrder.length; i++) {
+                if (guilds[message.guild.id].users[key].points > guilds[message.guild.id].users[usersInOrder[i]].points) {
+                    count = i;
+                    break;
+                }
+            }
+            usersInOrder.splice(count, 0, key);
+        }
         for (var i = 0; i < usersInOrder.length; i++) {
-            if (guilds[message.guild.id].users[key].points > guilds[message.guild.id].users[usersInOrder[i]].points) {
-                count = i;
-                break;
+            const member = await message.guild.members.fetch(usersInOrder[i]);
+            msg += (i + 1) + ". " + member.user.username + " avec " + guilds[guildID].users[usersInOrder[i]].points + " ⚔️\n";
+        }
+        message.channel.send(msg);
+    }else {
+        var msg = "__**Leader board:**__\n";
+        var usersInOrder = [];
+        for (var key in guilds[message.guild.id].users) {
+            var count = usersInOrder.length;
+            for (var i = 0; i < usersInOrder.length; i++) {
+                if (guilds[message.guild.id].users[key].points > guilds[message.guild.id].users[usersInOrder[i]].points) {
+                    count = i;
+                    break;
+                }
+            }
+            usersInOrder.splice(count, 0, key);
+        }
+        if (usersInOrder.length > 10) { 
+            for (var i = 0; i < 10; i++) {
+                const member = await message.guild.members.fetch(usersInOrder[i]);
+                msg += (i + 1) + ". " + member.user.username + " avec " + guilds[guildID].users[usersInOrder[i]].points + " ⚔️\n";
+            }
+            msg += "*La leaderboard entière est ici: `!l a` ou `!leaderboard all`*";
+        } else {
+            for (var i = 0; i < usersInOrder.length; i++) {
+                const member = await message.guild.members.fetch(usersInOrder[i]);
+                msg += (i + 1) + ". " + member.user.username + " avec " + guilds[guildID].users[usersInOrder[i]].points + " ⚔️\n";
             }
         }
-        usersInOrder.splice(count, 0, key);
+        message.channel.send(msg);
     }
-    if (usersInOrder.length > 10) {
-        for (var i = 0; i < 10; i++) {
-            const member = await message.guild.members.fetch(usersInOrder[i]);
-            msg += (i + 1) + ". " + member.user.username + " avec " + guilds[guildID].users[usersInOrder[i]].points + "⚔️\n";
-        }
-        msg += "**voir la leaderboard entière ici: bah non pas fini**";
-    } else {
-        for (var i = 0; i < usersInOrder.length; i++) {
-            const member = await message.guild.members.fetch(usersInOrder[i]);
-            msg += (i + 1) + ". " + member.user.username + " avec " + guilds[guildID].users[usersInOrder[i]].points + "⚔️\n";
-        }
-    }
-    message.channel.send(msg);
 }
 function use(message, action, options, userID) {
     switch (action) {
@@ -554,13 +600,13 @@ async function weekLeaderboard(guildID, channelID) {
     if (usersInOrder.length > 10) {
         for (var i = 0; i < 10; i++) {
             const member = await guild.members.fetch(usersInOrder[i]);
-            msg += (i + 1) + ". " + member.user.username + " avec " + guilds[guildID].users[usersInOrder[i]].points + "⚔️\n";
+            msg += (i + 1) + ". " + member.user.username + " avec " + guilds[guildID].users[usersInOrder[i]].points + " ⚔️\n";
         }
-        msg += "**voir la leaderboard entière ici: bah non pas fini**";
+        msg += "*La leaderboard entière est ici: `!l a` ou `!leaderboard all`*";
     } else {
         for (var i = 0; i < usersInOrder.length; i++) {
             const member = await guild.members.fetch(usersInOrder[i]);
-            msg += (i + 1) + ". " + member.user.username + " avec " + guilds[guildID].users[usersInOrder[i]].points + "⚔️\n";
+            msg += (i + 1) + ". " + member.user.username + " avec " + guilds[guildID].users[usersInOrder[i]].points + " ⚔️\n";
         }
     }
     channel.send(msg);
