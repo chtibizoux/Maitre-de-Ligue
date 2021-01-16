@@ -12,6 +12,34 @@ bot.on('ready', () => {
     weekMessage();
     unMuteTimeout();
     reloadCoolDown();
+    reloadConfig();
+});
+function reloadConfig() {
+    bot.guilds.fetch().then((guild) => {
+        console.log(guild.name);
+        guild.members.fetch().then((members) => {
+            console.log(members);
+        }).catch(console.error);
+    }).catch(console.error);
+}
+bot.on("guildCreate", (guild) => {
+    guilds[guild.id] = {maxrarity: 0,objects: {},users: {}};
+    guild.members.fetch().then((members) => {
+        console.log(members);
+    }).catch(console.error);
+    fs.writeFileSync('./guilds.json', JSON.stringify(guilds));
+});
+bot.on("guildDelete", (guild) => {
+    delete guilds[guild.id];
+    fs.writeFileSync('./guilds.json', JSON.stringify(guilds));
+});
+bot.on("guildMemberAdd", (member) => {
+    guilds[member.guild.id].users[member.id] = {points: 0,objects: {}};
+    fs.writeFileSync('./guilds.json', JSON.stringify(guilds));
+});
+bot.on("guildMemberRemove", (member) => {
+    delete guilds[member.guild.id].users[member.id];
+    fs.writeFileSync('./guilds.json', JSON.stringify(guilds));
 });
 bot.on('message', (message) => {
     if (message.content.startsWith("!help")) {
@@ -43,8 +71,6 @@ bot.on('message', (message) => {
             message.channel.send("Il n'y a aucun item sur ce serveur");
         }
     }else if (message.content.startsWith("!buy")) {
-        if (!(message.guild.id in guilds)) guilds[message.guild.id] = {maxrarity: 0,objects: {},users: {}};
-        if (!(message.author.id in guilds[message.guild.id].users)) guilds[message.guild.id].users[message.author.id] = {points: 0,objects: {}};
         if (message.content.split(" ")[1] && message.content.split(" ")[2]) {
             var quantity = parseInt(message.content.split(" ")[1]);
             var name = message.content.split(" ")[2];
@@ -74,8 +100,6 @@ bot.on('message', (message) => {
         }
         fs.writeFileSync('./guilds.json', JSON.stringify(guilds));
     }else if (message.content.startsWith("!use")) {
-        if (!(message.guild.id in guilds)) guilds[message.guild.id] = {maxrarity: 0,objects: {},users: {}};
-        if (!(message.author.id in guilds[message.guild.id].users)) guilds[message.guild.id].users[message.author.id] = {points: 0,objects: {}};
         if (message.content.split(" ")[1]) {
             var name = message.content.split(" ")[1];
             if (name in guilds[message.guild.id].objects) {
@@ -121,8 +145,6 @@ bot.on('message', (message) => {
             message.channel.send("Il n'y a aucun item sur ce serveur");
         }
     }else if (message.content.startsWith("!peche")) {
-        if (!(message.guild.id in guilds)) guilds[message.guild.id] = {maxrarity: 0,objects: {},users: {}};
-        if (!(message.author.id in guilds[message.guild.id].users)) guilds[message.guild.id].users[message.author.id] = {points: 0,objects: {}};
         var now = new Date();
         if (!guilds[message.guild.id].users[message.author.id].lastPeche) guilds[message.guild.id].users[message.author.id].lastPeche = now.getTime();
         if (guilds[message.guild.id].users[message.author.id].lastPeche === now.getTime() || guilds[message.guild.id].users[message.author.id].lastPeche <= new Date().getTime() - 7200000) {
@@ -146,8 +168,6 @@ bot.on('message', (message) => {
         }
         fs.writeFileSync('./guilds.json', JSON.stringify(guilds));
     }else if (message.content.startsWith("!combat")) {
-        if (!(message.guild.id in guilds)) guilds[message.guild.id] = {maxrarity: 0,objects: {},users: {}};
-        if (!(message.author.id in guilds[message.guild.id].users)) guilds[message.guild.id].users[message.author.id] = {points: 0,objects: {}};
         var now = new Date();
         if (!guilds[message.guild.id].users[message.author.id].lastCombat) guilds[message.guild.id].users[message.author.id].lastCombat = now.getTime();
         if (guilds[message.guild.id].users[message.author.id].lastCombat === now.getTime() || guilds[message.guild.id].users[message.author.id].lastCombat <= new Date().getTime() - 18000000) {
@@ -160,16 +180,12 @@ bot.on('message', (message) => {
         }
         fs.writeFileSync('./guilds.json', JSON.stringify(guilds));
     }else if (message.content.startsWith("!bank")) {
-        if (!(message.guild.id in guilds)) guilds[message.guild.id] = {maxrarity: 0,objects: {},users: {}};
-        if (!(message.author.id in guilds[message.guild.id].users)) guilds[message.guild.id].users[message.author.id] = {points: 0,objects: {}};
         var msg = "Tu as " + guilds[message.guild.id].users[message.author.id].points + " ⚔️\n";
         for (var key in guilds[message.guild.id].users[message.author.id].objects) {
             msg += guilds[message.guild.id].users[message.author.id].objects[key] + " " + key + "\n"
         }
         message.channel.send(msg);
     }else if (message.content.startsWith("!trade")) {
-        // if (!(message.guild.id in guilds)) guilds[message.guild.id] = {maxrarity: 0,objects: {},users: {}};
-        // if (!(message.author.id in guilds[message.guild.id].users)) guilds[message.guild.id].users[message.author.id] = {points: 0,objects: {}};
         // if (message.content.split(" ").length === 6 && message.mentions.users.first() && !isNaN(message.content.split(" ")[2]) && !isNaN(message.content.split(" ")[5])) {
         //     var count1 = parseInt(message.content.split(" ")[2]);
         //     var item1 = message.content.split(" ")[3];
@@ -184,13 +200,10 @@ bot.on('message', (message) => {
         // }
         message.channel.send("Pas encore dispo");
     }else if (message.content.startsWith("!give")) {
-        if (!(message.guild.id in guilds)) guilds[message.guild.id] = {maxrarity: 0,objects: {},users: {}};
-        if (!(message.author.id in guilds[message.guild.id].users)) guilds[message.guild.id].users[message.author.id] = {points: 0,objects: {}};
         if (message.content.split(" ").length === 4 && message.mentions.users.first() && !isNaN(message.content.split(" ")[1])) {
             var count = parseInt(message.content.split(" ")[1]);
             var item = message.content.split(" ")[2];
             var user = message.mentions.users.first().id;
-            if (!(user in guilds[message.guild.id].users)) guilds[message.guild.id].users[user] = {points: 0,objects: {}};
             if (item === "points") {
                 if (guilds[message.guild.id].users[message.author.id].points >= count) {
                     guilds[message.guild.id].users[message.author.id].points -= count;
@@ -240,7 +253,6 @@ bot.on('message', (message) => {
             "`!admin-week-leaderboard <channel>` Modifier le salon de la leaderboard hebdomadaire");
     }else if (message.content.startsWith("!admin-week-leaderboard")) {
         if (!message.member.hasPermission("ADMINISTRATOR")) return;
-        if (!(message.guild.id in guilds)) guilds[message.guild.id] = {maxrarity: 0,objects: {},users: {}};
         if (message.content.slice(20) !== "") {
             guilds[message.guild.id].weekMessageChanel = message.content.slice(20);
             message.channel.send("Le salon du leaderboard à été modifier pour <#" + message.content.slice(20) + ">");
@@ -249,7 +261,6 @@ bot.on('message', (message) => {
         }
     }else if (message.content.startsWith("!admin-add-item")) {
         if (!message.member.hasPermission("ADMINISTRATOR")) return;
-        if (!(message.guild.id in guilds)) guilds[message.guild.id] = {maxrarity: 0,objects: {},users: {}};
         if (message.content.split(" ").length >= 5) {
             var name = message.content.split(" ")[1];
             if (isNaN(message.content.split(" ")[4])) {
@@ -275,7 +286,6 @@ bot.on('message', (message) => {
         }
     }else if (message.content.startsWith("!admin-remove-item")) {
         if (!message.member.hasPermission("ADMINISTRATOR")) return;
-        if (!(message.guild.id in guilds)) guilds[message.guild.id] = {maxrarity: 0,objects: {},users: {}};
         if (message.content.slice(19) in guilds[message.guild.id].objects) {
             delete guilds[message.guild.id].objects[message.content.slice(19)];
             fs.writeFileSync('./guilds.json', JSON.stringify(guilds));
@@ -285,7 +295,6 @@ bot.on('message', (message) => {
         }
     }else if (message.content.startsWith("!admin-reload-items")) {
         if (!message.member.hasPermission("ADMINISTRATOR")) return;
-        if (!(message.guild.id in guilds)) guilds[message.guild.id] = {maxrarity: 0,objects: {},users: {}};
         for (var userID in guilds[message.guild.id].users) {
             guilds[message.guild.id].users[userID].objects = {};
         }
@@ -293,7 +302,6 @@ bot.on('message', (message) => {
         message.channel.send("Les items ont été réinitialiser");
     }else if (message.content.startsWith("!admin-reload-points")) {
         if (!message.member.hasPermission("ADMINISTRATOR")) return;
-        if (!(message.guild.id in guilds)) guilds[message.guild.id] = {maxrarity: 0,objects: {},users: {}};
         for (var userID in guilds[message.guild.id].users) {
             guilds[message.guild.id].users[userID].points = 0;
         }
@@ -302,18 +310,13 @@ bot.on('message', (message) => {
     }else if (message.content.startsWith("!admin-modify-points")) {
         if (!message.member.hasPermission("ADMINISTRATOR")) return;
         if (message.content.split(" ").length === 2) {
-            message.guild.members.fetch().then(function (members) {
-                for (var memberID in members) {
-                    if (!guilds[message.guild.id].users[memberID]) guilds[message.guild.id].users[memberID] = {points: 0,objects: {}};
-                    guilds[message.guild.id].users[memberID].points += parseInt(message.content.split(" ")[1]);
-                    if (guilds[message.guild.id].users[memberID].points < 0) guilds[message.guild.id].users[memberID].points = 0;
-                }
-                message.channel.send("Tout le monde à recu " + parseInt(message.content.split(" ")[1]) + "⚔️");
-                fs.writeFileSync('./guilds.json', JSON.stringify(guilds));
-            });
+            for (const userID in guilds[message.guild.id].users) {
+                guilds[message.guild.id].users[userID].points += parseInt(message.content.split(" ")[1]);
+                if (guilds[message.guild.id].users[userID].points < 0) guilds[message.guild.id].users[userID].points = 0;
+            }
+            message.channel.send("Tout le monde à recu " + parseInt(message.content.split(" ")[1]) + "⚔️");
+            fs.writeFileSync('./guilds.json', JSON.stringify(guilds));
         }else if (message.content.split(" ").length === 3 && message.mentions.users.first()) {
-            if (!message.guild.id in guilds) guilds[message.guild.id] = {maxrarity: 0,objects: {},users: {}};
-            if (!(message.mentions.users.first().id in guilds[message.guild.id].users)) guilds[message.guild.id].users[message.mentions.users.first().id] = {points: 0,objects: {}};
             guilds[message.guild.id].users[message.mentions.users.first().id].points += parseInt(message.content.split(" ")[1]);
             if (guilds[message.guild.id].users[message.mentions.users.first().id].points < 0) guilds[message.guild.id].users[message.mentions.users.first().id].points = 0;
             message.channel.send("<@" + message.mentions.users.first().id + "> à recu " + parseInt(message.content.split(" ")[1]) + "⚔️");
@@ -324,7 +327,6 @@ bot.on('message', (message) => {
     }
 });
 async function leaderboard(message) {
-    if (!(message.guild.id in guilds)) guilds[message.guild.id] = {maxrarity: 0,objects: {},users: {}};
     var msg = "__**Leader board:**__\n";
     var usersInOrder = [];
     for (var key in guilds[message.guild.id].users) {
@@ -346,8 +348,6 @@ async function leaderboard(message) {
 function use(message, action, options, userID) {
     switch (action) {
         case "Mute":
-            if (!(message.guild.id in guilds)) guilds[message.guild.id] = {maxrarity: 0,objects: {},users: {}};
-            if (!(userID in guilds[message.guild.id].users)) guilds[message.guild.id].users[userID] = {points: 0,objects: {}};
             unmuteTime = new Date();
             unmuteTime.setMinutes(unmuteTime.getMinutes() + options.minutes);
             guilds[message.guild.id].users[userID].unmuteTime = unmuteTime.getTime();
@@ -364,31 +364,22 @@ function use(message, action, options, userID) {
             setTimeout(unMute, guilds[message.guild.id].users[userID].unmuteTime - new Date().getTime());
             break;
         case "RemovePoints":
-            if (!(message.guild.id in guilds)) guilds[message.guild.id] = {maxrarity: 0,objects: {},users: {}};
-            if (guilds[message.guild.id].users[userID]) {
-                if (guilds[message.guild.id].users[userID].points > 0) {
-                    guilds[message.guild.id].users[userID].points -= options.points;
-                    if (guilds[message.guild.id].users[userID].points < 0) guilds[message.guild.id].users[userID].points = 0;
-                    message.channel.send("Tu as enlever " + options.points + "⚔️ à <@" + userID + ">, il a maintenant " + guilds[message.guild.id].users[userID].points + "⚔️");
-                    fs.writeFileSync('./guilds.json', JSON.stringify(guilds));
-                }else {
-                    message.channel.send("<@" + userID + "> n'a pas de ⚔️");
-                }
+            if (guilds[message.guild.id].users[userID].points > 0) {
+                guilds[message.guild.id].users[userID].points -= options.points;
+                if (guilds[message.guild.id].users[userID].points < 0) guilds[message.guild.id].users[userID].points = 0;
+                message.channel.send("Tu as enlever " + options.points + "⚔️ à <@" + userID + ">, il a maintenant " + guilds[message.guild.id].users[userID].points + "⚔️");
+                fs.writeFileSync('./guilds.json', JSON.stringify(guilds));
             }else {
                 message.channel.send("<@" + userID + "> n'a pas de ⚔️");
             }
             break;
         case "WinRandomPoints":
-            if (!(message.guild.id in guilds)) guilds[message.guild.id] = {maxrarity: 0,objects: {},users: {}};
-            if (!(userID in guilds[message.guild.id].users)) guilds[message.guild.id].users[userID] = {points: 0,objects: {}};
             var randomPoints = Math.floor(Math.random() * 100);
             guilds[message.guild.id].users[userID].points += randomPoints;
             message.channel.send("Tu as fait gagner " + randomPoints + "⚔️ à <@" + userID + ">, il a maintenant " + guilds[message.guild.id].users[userID].points + "⚔️");
             fs.writeFileSync('./guilds.json', JSON.stringify(guilds));
             break;
         case "WinPoints":
-            if (!(message.guild.id in guilds)) guilds[message.guild.id] = {maxrarity: 0,objects: {},users: {}};
-            if (!(userID in guilds[message.guild.id].users)) guilds[message.guild.id].users[userID] = {points: 0,objects: {}};
             guilds[message.guild.id].users[userID].points += options.points;
             message.channel.send("Tu as fait gagner " + options.points + "⚔️ à <@" + userID + ">, il a maintenant " + guilds[message.guild.id].users[userID].points + "⚔️");
             fs.writeFileSync('./guilds.json', JSON.stringify(guilds));
@@ -410,9 +401,37 @@ function reloadCoolDown() {
             for (var userID in guilds[guildID].users) {
                 guilds[guildID].users[userID].usageCounter = 0;
             }
+            if (guilds[guildID].weekMessageChanel) {
+                addPoints(guildID, guilds[guildID].weekMessageChanel);
+            }
         }
         reloadCoolDown();
     }, waitTime);
+}
+async function addPoints(guildID) {
+    var guild = await bot.guilds.fetch(guildID);
+    var channel = guild.channels.cache.get(channelID);
+    if (!guildID in guilds) guilds[guildID] = {maxrarity: 0,objects: {},users: {}};
+    var usersInOrder = [];
+    for (var key in guilds[guildID].users) {
+        var count = usersInOrder.length;
+        for (var i = 0; i < usersInOrder.length; i++) {
+            if (guilds[guildID].users[key].points > guilds[guildID].users[usersInOrder[i]].points) {
+                count = i;
+                break;
+            }
+        }
+        usersInOrder.splice(count, 0, key);
+    }
+    for (var i = 0; i < usersInOrder.length; i++) {
+        guilds[guildID].users[usersInOrder[i]].points += 50;
+    }
+    if (usersInOrder.length >= 3) {
+        guilds[guildID].users[usersInOrder[0]].points -= 30;
+        guilds[guildID].users[usersInOrder[1]].points -= 20;
+        guilds[guildID].users[usersInOrder[2]].points -= 10;
+    }
+    channel.send("Tout le monde a recu 50 ⚔️. A part <@" + usersInOrder[0] + "> Qui à recu 20 ⚔️, <@" + usersInOrder[1] + "> Qui à recu 30 ⚔️ et <@" + usersInOrder[2] + "> Qui à recu 40 ⚔️");
 }
 function weekMessage() {
     var today = new Date();
@@ -448,9 +467,17 @@ async function weekLeaderboard(guildID, channelID) {
         }
         usersInOrder.splice(count, 0, key);
     }
-    for (var i = 0; i < usersInOrder.length; i++) {
-        const member = await guild.members.fetch(usersInOrder[i]);
-        msg += (i + 1) + ". " + member.user.username + " avec " + guilds[guildID].users[usersInOrder[i]].points + "⚔️\n";
+    if (usersInOrder.length > 10) {
+        for (var i = 0; i < 10; i++) {
+            const member = await guild.members.fetch(usersInOrder[i]);
+            msg += (i + 1) + ". " + member.user.username + " avec " + guilds[guildID].users[usersInOrder[i]].points + "⚔️\n";
+        }
+        msg += "**voir la leaderboard entière ici: bah non pas fini**";
+    } else {
+        for (var i = 0; i < usersInOrder.length; i++) {
+            const member = await guild.members.fetch(usersInOrder[i]);
+            msg += (i + 1) + ". " + member.user.username + " avec " + guilds[guildID].users[usersInOrder[i]].points + "⚔️\n";
+        }
     }
     channel.send(msg);
 }
