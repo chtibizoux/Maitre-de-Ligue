@@ -1,6 +1,10 @@
 const discord = require('discord.js');
 const fs = require("fs");
-const bot = new discord.Client();
+const intents = new discord.Intents([
+    discord.Intents.NON_PRIVILEGED,
+    "GUILD_MEMBERS",
+]);
+const bot = new discord.Client({ ws: { intents } });
 if (!fs.existsSync("config.json")) {
     console.error("Please create config.json file config.json.exemple is an exemple");
 }
@@ -15,12 +19,16 @@ bot.on('ready', () => {
     reloadConfig();
 });
 function reloadConfig() {
-    bot.guilds.fetch().then((guild) => {
-        console.log(guild.name);
-        guild.members.fetch().then((members) => {
-            console.log(members);
+    for (guildID in guilds) {
+        bot.guilds.fetch(guildID).then((guild) => {
+            guild.members.fetch().then((members) => {
+                members.each(member => {
+                    if (!member.user.bot && !(member.id in guilds[guildID].users)) guilds[guildID].users[member.id] = {maxrarity: 0,objects: {},users: {}};
+                });
+                fs.writeFileSync('./guilds.json', JSON.stringify(guilds));
+            }).catch(console.error);
         }).catch(console.error);
-    }).catch(console.error);
+    }
 }
 bot.on("guildCreate", (guild) => {
     guilds[guild.id] = {maxrarity: 0,objects: {},users: {}};
