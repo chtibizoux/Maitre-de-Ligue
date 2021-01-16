@@ -23,7 +23,7 @@ function reloadConfig() {
         bot.guilds.fetch(guildID).then((guild) => {
             guild.members.fetch().then((members) => {
                 members.each(member => {
-                    if (!member.user.bot && !(member.id in guilds[guildID].users)) guilds[guildID].users[member.id] = {maxrarity: 0,objects: {},users: {}};
+                    if (!member.user.bot && !(member.id in guilds[guildID].users)) guilds[guildID].users[member.id] = {points: 0,objects: {}};
                 });
                 fs.writeFileSync('./guilds.json', JSON.stringify(guilds));
             }).catch(console.error);
@@ -33,7 +33,10 @@ function reloadConfig() {
 bot.on("guildCreate", (guild) => {
     guilds[guild.id] = {maxrarity: 0,objects: {},users: {}};
     guild.members.fetch().then((members) => {
-        console.log(members);
+        members.each(member => {
+            if (!member.user.bot && !(member.id in guilds[guildID].users)) guilds[guildID].users[member.id] = {points: 0,objects: {}};
+        });
+        fs.writeFileSync('./guilds.json', JSON.stringify(guilds));
     }).catch(console.error);
     fs.writeFileSync('./guilds.json', JSON.stringify(guilds));
 });
@@ -50,18 +53,18 @@ bot.on("guildMemberRemove", (member) => {
     fs.writeFileSync('./guilds.json', JSON.stringify(guilds));
 });
 bot.on('message', (message) => {
-    if (message.content.startsWith("!help")) {
+    if (message.content.startsWith("!help") || message.content.startsWith("!h")) {
         message.channel.send("Gagne un item(toute les 2 heures) random avec la commande `!peche`.\n" +
             "Gagne 80 points(toute les 5 heures) avec la commande `!combat`.\n" +
             "Montre tout les items qu'il y a au marcher avec la commande `!shop`.\n" +
             "Affiche tes points et tes objets avec la commande `!bank`.\n" +
             "Achette un item avec la commande `!buy [quantity] <name>`.\n" +
-            "Utilise un item avec la commande `!use <name>`.\n" +
+            "Utilise un item avec la commande `!use <name> [user]`.\n" +
             "Affiche le classeent général du serveur avec la commande `!leaderboard`.\n" +
             "Pour plus d'information sur un item utilise la commande `!info <name>`.\n" +
             'Echanger quelque chose avec la commande `!trade <count> <item> or "points" <user> <count> <item> or points`\n' +
             'Donne quelque chose avec la commande `!give <count> <item> or "points" <user>`\n');
-    }else if (message.content.startsWith("!shop")) {
+    }else if (message.content.startsWith("!shop") || message.content.startsWith("!s")) {
         var msg = "__**Objets en vente:**__\n\n";
         if (message.guild.id in guilds) {
             var objects = guilds[message.guild.id].objects;
@@ -79,7 +82,7 @@ bot.on('message', (message) => {
             message.channel.send("Il n'y a aucun item sur ce serveur");
         }
     }else if (message.content.startsWith("!buy")) {
-        if (message.content.split(" ")[1] && message.content.split(" ")[2]) {
+        if (message.content.split(" ").length === 3) {
             var quantity = parseInt(message.content.split(" ")[1]);
             var name = message.content.split(" ")[2];
             if (name in guilds[message.guild.id].objects) {
@@ -103,11 +106,34 @@ bot.on('message', (message) => {
             }else {
                 message.channel.send("L'objet n'existe pas");
             }
+        }else if (message.content.split(" ").length === 2) {
+            var name = message.content.split(" ")[1];
+            if (name in guilds[message.guild.id].objects) {
+                if (guilds[message.guild.id].objects[name].buyable) {
+                    var object = guilds[message.guild.id].objects[name];
+                    var user = guilds[message.guild.id].users[message.author.id];
+                    if (user.points >= object.cost) {
+                        user.points -= object.cost;
+                        if (name in user.objects) {
+                            user.objects[name] += 1;
+                        }else {
+                            user.objects[name] = 1;
+                        }
+                        message.channel.send("Tu as achetter 1 " + name);
+                    }else {
+                        message.channel.send("Tu n'as pas assez de ⚔️");
+                    }
+                }else {
+                    message.channel.send("L'objet n'est pas achetable");
+                }
+            }else {
+                message.channel.send("L'objet n'existe pas");
+            }
         }else {
             message.channel.send("La commande n'est pas valide");
         }
         fs.writeFileSync('./guilds.json', JSON.stringify(guilds));
-    }else if (message.content.startsWith("!use")) {
+    }else if (message.content.startsWith("!use") || message.content.startsWith("!u")) {
         if (message.content.split(" ")[1]) {
             var name = message.content.split(" ")[1];
             if (name in guilds[message.guild.id].objects) {
@@ -142,7 +168,7 @@ bot.on('message', (message) => {
             message.channel.send("La commande n'est pas valide");
         }
         fs.writeFileSync('./guilds.json', JSON.stringify(guilds));
-    }else if (message.content.startsWith("!info")) {
+    }else if (message.content.startsWith("!info") || message.content.startsWith("!i")) {
         if (message.guild.id in guilds) {
             if (message.content.slice(6) in guilds[message.guild.id].objects) {
                 message.channel.send(guilds[message.guild.id].objects[message.content.slice(6)].description);
@@ -152,7 +178,7 @@ bot.on('message', (message) => {
         }else {
             message.channel.send("Il n'y a aucun item sur ce serveur");
         }
-    }else if (message.content.startsWith("!peche")) {
+    }else if (message.content.startsWith("!peche") || message.content.startsWith("!p")) {
         var now = new Date();
         if (!guilds[message.guild.id].users[message.author.id].lastPeche) guilds[message.guild.id].users[message.author.id].lastPeche = now.getTime();
         if (guilds[message.guild.id].users[message.author.id].lastPeche === now.getTime() || guilds[message.guild.id].users[message.author.id].lastPeche <= new Date().getTime() - 7200000) {
@@ -175,7 +201,7 @@ bot.on('message', (message) => {
             message.channel.send("Tu doit attendre " + (wait.getHours() - 1) + "h" + wait.getMinutes());
         }
         fs.writeFileSync('./guilds.json', JSON.stringify(guilds));
-    }else if (message.content.startsWith("!combat")) {
+    }else if (message.content.startsWith("!combat") || message.content.startsWith("!c")) {
         var now = new Date();
         if (!guilds[message.guild.id].users[message.author.id].lastCombat) guilds[message.guild.id].users[message.author.id].lastCombat = now.getTime();
         if (guilds[message.guild.id].users[message.author.id].lastCombat === now.getTime() || guilds[message.guild.id].users[message.author.id].lastCombat <= new Date().getTime() - 18000000) {
@@ -187,13 +213,13 @@ bot.on('message', (message) => {
             message.channel.send("Tu doit attendre " + (wait.getHours() - 1) + "h" + wait.getMinutes());
         }
         fs.writeFileSync('./guilds.json', JSON.stringify(guilds));
-    }else if (message.content.startsWith("!bank")) {
+    }else if (message.content.startsWith("!bank") || message.content.startsWith("!b")) {
         var msg = "Tu as " + guilds[message.guild.id].users[message.author.id].points + " ⚔️\n";
         for (var key in guilds[message.guild.id].users[message.author.id].objects) {
             msg += guilds[message.guild.id].users[message.author.id].objects[key] + " " + key + "\n"
         }
         message.channel.send(msg);
-    }else if (message.content.startsWith("!trade")) {
+    }else if (message.content.startsWith("!trade") || message.content.startsWith("!t")) {
         // if (message.content.split(" ").length === 6 && message.mentions.users.first() && !isNaN(message.content.split(" ")[2]) && !isNaN(message.content.split(" ")[5])) {
         //     var count1 = parseInt(message.content.split(" ")[2]);
         //     var item1 = message.content.split(" ")[3];
@@ -206,8 +232,8 @@ bot.on('message', (message) => {
         // }else {
         //     message.channel.send("La commande n'est pas valide");
         // }
-        message.channel.send("Pas encore dispo");
-    }else if (message.content.startsWith("!give")) {
+        message.channel.send("Bientôt disponible");
+    }else if (message.content.startsWith("!give") || message.content.startsWith("!g")) {
         if (message.content.split(" ").length === 4 && message.mentions.users.first() && !isNaN(message.content.split(" ")[1])) {
             var count = parseInt(message.content.split(" ")[1]);
             var item = message.content.split(" ")[2];
@@ -241,96 +267,138 @@ bot.on('message', (message) => {
                 }
             }
             fs.writeFileSync('./guilds.json', JSON.stringify(guilds));
-            // message.channel.send("L' item " + name + " a été ajouter");
         }else {
             message.channel.send("La commande n'est pas valide");
         }
-    }else if (message.content.startsWith("!leaderboard")) {
+    }else if (message.content.startsWith("!leaderboard") || message.content.startsWith("!l")) {
         leaderboard(message);
-    }else if (message.content.startsWith("!admin-help")) {
+    }else if (message.content.startsWith("!admin")) {
         if (!message.member.hasPermission("ADMINISTRATOR")) {
             message.channel.send("Tu n'as pas la permission d'utiliser cette commande");
             return;
         }
-        message.channel.send('`!admin-add-item <item name> "<description>" <rarity> <action> <options ex: minutes=10 points=5 (facultatif)> <cost (facultatif)>` ajouter un nouvelle item\n' +
-            "`!admin-remove-item <item>` supprimer un item\n" +
-            "`!admin-reload-items` réinitialiser les items\n" +
-            "`!admin-reload-points` réinitialiser les points de tout les joueurs\n" +
-            "`!admin-modify-points <number> <user>` Ajouter ou retirer des points à quelqu'un\n" +
-            "`!admin-modify-points <number>` Ajouter ou retirer des points à tout le monde\n" +
-            "`!admin-week-leaderboard <channel>` Modifier le salon de la leaderboard hebdomadaire");
-    }else if (message.content.startsWith("!admin-week-leaderboard")) {
-        if (!message.member.hasPermission("ADMINISTRATOR")) return;
-        if (message.content.slice(20) !== "") {
-            guilds[message.guild.id].weekMessageChanel = message.content.slice(20);
-            message.channel.send("Le salon du leaderboard à été modifier pour <#" + message.content.slice(20) + ">");
-        }else {
-            message.channel.send("Le salon du leaderboard à été supprimer");
-        }
-    }else if (message.content.startsWith("!admin-add-item")) {
-        if (!message.member.hasPermission("ADMINISTRATOR")) return;
-        if (message.content.split(" ").length >= 5) {
-            var name = message.content.split(" ")[1];
-            if (isNaN(message.content.split(" ")[4])) {
+        if (message.content.startsWith("!admin-help")) {
+            message.channel.send('`!admin-add-item <item name> "<description>" <rarity> <action> [options ex: minutes=10,points=5] [cost]` ajouter un nouvelle item\n' +
+                "`!admin-remove-item <item>` supprimer un item\n" +
+                "`!admin-reload-items` réinitialiser les items\n" +
+                "`!admin-reload-points` réinitialiser les points de tout les joueurs\n" +
+                "`!admin-modify-item <count> <item> <user>` Ajouter ou retirer des items à quelqu'un\n" +
+                "`!admin-modify-item <count> <item>` Ajouter ou retirer des items à tout le monde\n" +
+                "`!admin-modify-points <count> <user>` Ajouter ou retirer des ⚔️ à quelqu'un\n" +
+                "`!admin-modify-points <count>` Ajouter ou retirer des ⚔️ à tout le monde\n" +
+                "`!admin-channel <channel>` Modifier le salon de la leaderboard hebdomadaire");
+        }else if (message.content.startsWith("!admin-channel")) {
+            console.log(message.content.split(" ").length);
+            if (message.content.split(" ").length === 2) {
+                guilds[message.guild.id].weekMessageChanel = message.content.split(" ")[1].replace("<#", "").replace(">", "");
+                fs.writeFileSync('./guilds.json', JSON.stringify(guilds));
+                message.channel.send("Le salon du leaderboard à été modifier pour " + message.content.split(" ")[1]);
+            }else {
+                guilds[message.guild.id].weekMessageChanel = "";
+                fs.writeFileSync('./guilds.json', JSON.stringify(guilds));
+                message.channel.send("Le salon du leaderboard à été supprimer");
+            }
+        }else if (message.content.startsWith("!admin-add-item")) {
+            if (message.content.split(" ").length >= 5) {
+                var name = message.content.split(" ")[1];
+                if (isNaN(message.content.split(" ")[4])) {
+                    message.channel.send("La commande n'est pas valide");
+                    return;
+                }
+                var object = {
+                    action: message.content.split(" ")[2],
+                    description: message.content.split(" ")[3].split('"').join(""),
+                    rarity: parseInt(message.content.split(" ")[4]),
+                    buyable: false
+                }
+                if (message.content.split(" ")[5]) {
+                    var options = {};
+                    for (i = 0; i < message.content.split(" ")[5].split(",").length; i++) {
+                        if ("=" in message.content.split(" ")[5].split(",")[i]) {
+                            options[message.content.split(" ")[5].split(",")[i].split("=")[0]] = message.content.split(" ")[5].split(",")[i].split("=")[1];
+                        }
+                    }
+                    object.options = options;
+                }
+                if (message.content.split(" ")[6]) {
+                    object.cost = parseInt(message.content.split(" ")[6]);
+                    object.buyable = true;
+                }
+                guilds[message.guild.id].objects[name] = object;
+                fs.writeFileSync('./guilds.json', JSON.stringify(guilds));
+                message.channel.send("L' item " + name + " a été ajouter");
+            }else {
                 message.channel.send("La commande n'est pas valide");
-                return;
             }
-            var object = {
-                action: message.content.split(" ")[2],
-                description: message.content.split(" ")[3],
-                rarity: parseInt(message.content.split(" ")[4]),
-                buyable: false
+        }else if (message.content.startsWith("!admin-remove-item")) {
+            if (message.content.slice(19) in guilds[message.guild.id].objects) {
+                delete guilds[message.guild.id].objects[message.content.slice(19)];
+                fs.writeFileSync('./guilds.json', JSON.stringify(guilds));
+                message.channel.send("L' item " + message.content.slice(19) + " a été supprimer");
+            }else {
+                message.channel.send("Il n'y a aucun item avec ce nom");
             }
-            if (message.content.split(" ")[6]) object.options = message.content.split(" ")[5];
-            if (message.content.split(" ")[6]) {
-                object.cost = parseInt(message.content.split(" ")[6]);
-                object.buyable = true;
+        }else if (message.content.startsWith("!admin-reload-items")) {
+            for (var userID in guilds[message.guild.id].users) {
+                guilds[message.guild.id].users[userID].objects = {};
             }
-            guilds[message.guild.id].objects[name] = object;
             fs.writeFileSync('./guilds.json', JSON.stringify(guilds));
-            message.channel.send("L' item " + name + " a été ajouter");
-        }else {
-            message.channel.send("La commande n'est pas valide");
-        }
-    }else if (message.content.startsWith("!admin-remove-item")) {
-        if (!message.member.hasPermission("ADMINISTRATOR")) return;
-        if (message.content.slice(19) in guilds[message.guild.id].objects) {
-            delete guilds[message.guild.id].objects[message.content.slice(19)];
-            fs.writeFileSync('./guilds.json', JSON.stringify(guilds));
-            message.channel.send("L' item " + message.content.slice(19) + " a été supprimer");
-        }else {
-            message.channel.send("Il n'y a aucun item avec ce nom");
-        }
-    }else if (message.content.startsWith("!admin-reload-items")) {
-        if (!message.member.hasPermission("ADMINISTRATOR")) return;
-        for (var userID in guilds[message.guild.id].users) {
-            guilds[message.guild.id].users[userID].objects = {};
-        }
-        fs.writeFileSync('./guilds.json', JSON.stringify(guilds));
-        message.channel.send("Les items ont été réinitialiser");
-    }else if (message.content.startsWith("!admin-reload-points")) {
-        if (!message.member.hasPermission("ADMINISTRATOR")) return;
-        for (var userID in guilds[message.guild.id].users) {
-            guilds[message.guild.id].users[userID].points = 0;
-        }
-        fs.writeFileSync('./guilds.json', JSON.stringify(guilds));
-        message.channel.send("Les ⚔️ ont été réinitialiser");
-    }else if (message.content.startsWith("!admin-modify-points")) {
-        if (!message.member.hasPermission("ADMINISTRATOR")) return;
-        if (message.content.split(" ").length === 2) {
-            for (const userID in guilds[message.guild.id].users) {
-                guilds[message.guild.id].users[userID].points += parseInt(message.content.split(" ")[1]);
-                if (guilds[message.guild.id].users[userID].points < 0) guilds[message.guild.id].users[userID].points = 0;
+            message.channel.send("Les items ont été réinitialiser");
+        }else if (message.content.startsWith("!admin-reload-points")) {
+            if (!message.member.hasPermission("ADMINISTRATOR")) return;
+            for (var userID in guilds[message.guild.id].users) {
+                guilds[message.guild.id].users[userID].points = 0;
             }
-            message.channel.send("Tout le monde à recu " + parseInt(message.content.split(" ")[1]) + "⚔️");
             fs.writeFileSync('./guilds.json', JSON.stringify(guilds));
-        }else if (message.content.split(" ").length === 3 && message.mentions.users.first()) {
-            guilds[message.guild.id].users[message.mentions.users.first().id].points += parseInt(message.content.split(" ")[1]);
-            if (guilds[message.guild.id].users[message.mentions.users.first().id].points < 0) guilds[message.guild.id].users[message.mentions.users.first().id].points = 0;
-            message.channel.send("<@" + message.mentions.users.first().id + "> à recu " + parseInt(message.content.split(" ")[1]) + "⚔️");
-            fs.writeFileSync('./guilds.json', JSON.stringify(guilds));
-        }else {
-            message.channel.send("La commande n'est pas valide");
+            message.channel.send("Les ⚔️ ont été réinitialiser");
+        }else if (message.content.startsWith("!admin-modify-points")) {
+            if (message.content.split(" ").length === 2) {
+                for (userID in guilds[message.guild.id].users) {
+                    guilds[message.guild.id].users[userID].points += parseInt(message.content.split(" ")[1]);
+                    if (guilds[message.guild.id].users[userID].points < 0) guilds[message.guild.id].users[userID].points = 0;
+                }
+                message.channel.send("Tout le monde à recu " + parseInt(message.content.split(" ")[1]) + " ⚔️");
+                fs.writeFileSync('./guilds.json', JSON.stringify(guilds));
+            }else if (message.content.split(" ").length === 3 && message.mentions.users.first()) {
+                guilds[message.guild.id].users[message.mentions.users.first().id].points += parseInt(message.content.split(" ")[1]);
+                if (guilds[message.guild.id].users[message.mentions.users.first().id].points < 0) guilds[message.guild.id].users[message.mentions.users.first().id].points = 0;
+                message.channel.send("<@" + message.mentions.users.first().id + "> à recu " + parseInt(message.content.split(" ")[1]) + " ⚔️");
+                fs.writeFileSync('./guilds.json', JSON.stringify(guilds));
+            }else {
+                message.channel.send("La commande n'est pas valide");
+            }
+        }else if (message.content.startsWith("!admin-modify-items")) {
+            if (message.content.split(" ").length === 3) {
+                for (userID in guilds[message.guild.id].users) {
+                    var count = parseInt(message.content.split(" ")[1]);
+                    var item = message.content.split(" ")[2];
+                    if (item in guilds[message.guild.id].users[userID].objects) {
+                        guilds[message.guild.id].users[userID].objects[item] += count;
+                    }else {
+                        guilds[message.guild.id].users[userID].objects[item] = count;
+                    }
+                    if (guilds[message.guild.id].users[userID].objects[item] <= 0) {
+                        delete guilds[message.guild.id].users[userID].objects[item];
+                    }
+                }
+                message.channel.send("Tout le monde à recu " + count + " " + item);
+                fs.writeFileSync('./guilds.json', JSON.stringify(guilds));
+            }else if (message.content.split(" ").length === 4 && message.mentions.users.first()) {
+                var count = parseInt(message.content.split(" ")[1]);
+                var item = message.content.split(" ")[2];
+                if (item in guilds[message.guild.id].users[message.mentions.users.first().id].objects) {
+                    guilds[message.guild.id].users[message.mentions.users.first().id].objects[item] += count;
+                }else {
+                    guilds[message.guild.id].users[message.mentions.users.first().id].objects[item] = count;
+                }
+                if (guilds[message.guild.id].users[message.mentions.users.first().id].objects[item] <= 0) {
+                    delete guilds[message.guild.id].users[message.mentions.users.first().id].objects[item];
+                }
+                message.channel.send("<@" + message.mentions.users.first().id + "> à recu " + count + " " + item);
+                fs.writeFileSync('./guilds.json', JSON.stringify(guilds));
+            }else {
+                message.channel.send("La commande n'est pas valide");
+            }
         }
     }
 });
@@ -347,9 +415,17 @@ async function leaderboard(message) {
         }
         usersInOrder.splice(count, 0, key);
     }
-    for (var i = 0; i < usersInOrder.length; i++) {
-        const member = await message.guild.members.fetch(usersInOrder[i]);
-        msg += (i + 1) + ". " + member.user.username + " avec " + guilds[message.guild.id].users[usersInOrder[i]].points + "⚔️\n";
+    if (usersInOrder.length > 10) {
+        for (var i = 0; i < 10; i++) {
+            const member = await message.guild.members.fetch(usersInOrder[i]);
+            msg += (i + 1) + ". " + member.user.username + " avec " + guilds[guildID].users[usersInOrder[i]].points + "⚔️\n";
+        }
+        msg += "**voir la leaderboard entière ici: bah non pas fini**";
+    } else {
+        for (var i = 0; i < usersInOrder.length; i++) {
+            const member = await message.guild.members.fetch(usersInOrder[i]);
+            msg += (i + 1) + ". " + member.user.username + " avec " + guilds[guildID].users[usersInOrder[i]].points + "⚔️\n";
+        }
     }
     message.channel.send(msg);
 }
@@ -393,7 +469,7 @@ function use(message, action, options, userID) {
             fs.writeFileSync('./guilds.json', JSON.stringify(guilds));
             break;
         default:
-            message.channel.send("Pas encore dispo");
+            message.channel.send("Bientôt disponible");
     }
 }
 function reloadCoolDown() {
