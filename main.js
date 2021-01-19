@@ -150,7 +150,7 @@ bot.on('message', (message) => {
                 var user = guilds[message.guild.id].users[message.author.id];
                 if (name in user.objects) {
                     if (user.usageCounter) {
-                        if (user.usageCounter >= 5) {
+                        if (user.usageCounter >= 10) {
                             message.channel.send("Le taux journalier d'utilisation maximum à été dépasser");
                             return;
                         }
@@ -159,7 +159,7 @@ bot.on('message', (message) => {
                         user.usageCounter = 1;
                     }
                     var choosedUser = message.author.id;
-                    if (message.mentions.users.first()) {
+                    if (message.mentions.users.first() && !message.mentions.users.first().bot) {
                         choosedUser = message.mentions.users.first().id;
                     }
                     use(message, object.action, object.options, choosedUser);
@@ -180,7 +180,7 @@ bot.on('message', (message) => {
     }else if (message.content.startsWith("!info") || message.content.startsWith("!i")) {
         if (message.guild.id in guilds) {
             var name = message.content.split(" ")[1];
-            if (name.length > 0) {
+            if (name) {
                 name = name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
             }
             if (name in guilds[message.guild.id].objects) {
@@ -248,7 +248,7 @@ bot.on('message', (message) => {
         message.channel.send("Bientôt disponible");
     }else if (message.content.startsWith("!give") || message.content.startsWith("!g")) {
         if (message.content.split(" ").length === 4 && message.mentions.users.first() && !isNaN(message.content.split(" ")[1])) {
-            var count = parseInt(message.content.split(" ")[1]);
+            var count = Math.abs(parseInt(message.content.split(" ")[1]));
             var item = message.content.split(" ")[2];
             var user = message.mentions.users.first().id;
             if (item === "points") {
@@ -538,12 +538,15 @@ function reloadCoolDown() {
         reloadCoolDown();
     }, waitTime);
 }
-async function addPoints(guildID) {
+async function addPoints(guildID, channelID) {
+    console.log("addPoints");
     var guild = await bot.guilds.fetch(guildID);
     var channel = guild.channels.cache.get(channelID);
     if (!guildID in guilds) guilds[guildID] = {maxrarity: 0,objects: {},users: {}};
     var usersInOrder = [];
     for (var key in guilds[guildID].users) {
+        guilds[guildID].users[key].points += 50;
+        console.log(guilds[guildID].users[key].points);
         var count = usersInOrder.length;
         for (var i = 0; i < usersInOrder.length; i++) {
             if (guilds[guildID].users[key].points > guilds[guildID].users[usersInOrder[i]].points) {
@@ -552,9 +555,6 @@ async function addPoints(guildID) {
             }
         }
         usersInOrder.splice(count, 0, key);
-    }
-    for (var i = 0; i < usersInOrder.length; i++) {
-        guilds[guildID].users[usersInOrder[i]].points += 50;
     }
     if (usersInOrder.length >= 3) {
         guilds[guildID].users[usersInOrder[0]].points -= 30;
@@ -566,7 +566,7 @@ async function addPoints(guildID) {
 function weekMessage() {
     var today = new Date();
     var sunday = new Date();
-    sunday.setDate(today.getDate() + (9+(7-today.getDay())) % 7);
+    sunday.setDate(today.getDate() + (6/*last day*/+(7-today.getDay())) % 7);
     sunday.setHours(10);
     sunday.setMinutes(0);
     sunday.setSeconds(0);
