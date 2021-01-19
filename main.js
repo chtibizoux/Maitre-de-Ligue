@@ -153,6 +153,8 @@ bot.on('message', (message) => {
                         if (user.usageCounter >= 10) {
                             message.channel.send("Le taux journalier d'utilisation maximum à été dépasser");
                             return;
+                        }else{
+                            message.channel.send("Il te reste " + (10 - user.usageCounter) + " utilisations");
                         }
                         user.usageCounter += 1;
                     }else {
