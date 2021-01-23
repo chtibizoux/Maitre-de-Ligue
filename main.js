@@ -247,44 +247,46 @@ bot.on('message', (message) => {
         // }else {
         //     message.channel.send("La commande n'est pas valide");
         // }
-        message.channel.send("Bientôt disponible");
+        // message.channel.send("Bientôt disponible");
+        message.channel.send("Tu n'as pas la permission d'utiliser cette commande");
     }else if (message.content.startsWith("!give") || message.content.startsWith("!g")) {
-        if (message.content.split(" ").length === 4 && message.mentions.users.first() && !isNaN(message.content.split(" ")[1])) {
-            var count = Math.abs(parseInt(message.content.split(" ")[1]));
-            var item = message.content.split(" ")[2];
-            var user = message.mentions.users.first().id;
-            if (item === "points") {
-                if (guilds[message.guild.id].users[message.author.id].points >= count) {
-                    guilds[message.guild.id].users[message.author.id].points -= count;
-                    guilds[message.guild.id].users[user].points += count;
-                    message.channel.send("Tu as donner " + count + " ⚔️ à <@" + user + ">");
-                }else {
-                    message.channel.send("Tu n'as pas assez de ⚔️");
-                }
-            }else {
-                if (item in guilds[message.guild.id].users[message.author.id].objects) {
-                    if (guilds[message.guild.id].users[message.author.id].objects[item] >= count) {
-                        if (item in guilds[message.guild.id].users[user].objects) {
-                            guilds[message.guild.id].users[user].objects[item] += count;
-                        }else {
-                            guilds[message.guild.id].users[user].objects[item] = count;
-                        }
-                        guilds[message.guild.id].users[message.author.id].objects[item] -= count;
-                        if (guilds[message.guild.id].users[message.author.id].objects[item] === 0) {
-                            delete guilds[message.guild.id].users[message.author.id].objects[item];
-                        }
-                        message.channel.send("Tu as donner " + count + " " + item + " à <@" + user + ">");
-                    }else {
-                        message.channel.send("Tu n'as pas assez de " + item);
-                    }
-                }else {
-                    message.channel.send("Tu n'as aucun " + item);
-                }
-            }
-            fs.writeFileSync('./guilds.json', JSON.stringify(guilds));
-        }else {
-            message.channel.send("La commande n'est pas valide");
-        }
+        // if (message.content.split(" ").length === 4 && message.mentions.users.first() && !isNaN(message.content.split(" ")[1])) {
+        //     var count = Math.abs(parseInt(message.content.split(" ")[1]));
+        //     var item = message.content.split(" ")[2];
+        //     var user = message.mentions.users.first().id;
+        //     if (item === "points") {
+        //         if (guilds[message.guild.id].users[message.author.id].points >= count) {
+        //             guilds[message.guild.id].users[message.author.id].points -= count;
+        //             guilds[message.guild.id].users[user].points += count;
+        //             message.channel.send("Tu as donner " + count + " ⚔️ à <@" + user + ">");
+        //         }else {
+        //             message.channel.send("Tu n'as pas assez de ⚔️");
+        //         }
+        //     }else {
+        //         if (item in guilds[message.guild.id].users[message.author.id].objects) {
+        //             if (guilds[message.guild.id].users[message.author.id].objects[item] >= count) {
+        //                 if (item in guilds[message.guild.id].users[user].objects) {
+        //                     guilds[message.guild.id].users[user].objects[item] += count;
+        //                 }else {
+        //                     guilds[message.guild.id].users[user].objects[item] = count;
+        //                 }
+        //                 guilds[message.guild.id].users[message.author.id].objects[item] -= count;
+        //                 if (guilds[message.guild.id].users[message.author.id].objects[item] === 0) {
+        //                     delete guilds[message.guild.id].users[message.author.id].objects[item];
+        //                 }
+        //                 message.channel.send("Tu as donner " + count + " " + item + " à <@" + user + ">");
+        //             }else {
+        //                 message.channel.send("Tu n'as pas assez de " + item);
+        //             }
+        //         }else {
+        //             message.channel.send("Tu n'as aucun " + item);
+        //         }
+        //     }
+        //     fs.writeFileSync('./guilds.json', JSON.stringify(guilds));
+        // }else {
+        //     message.channel.send("La commande n'est pas valide");
+        // }
+        message.channel.send("Tu n'as pas la permission d'utiliser cette commande");
     }else if (message.content.startsWith("!leaderboard") || message.content.startsWith("!l")) {
         leaderboard(message);
     }else if (message.content.startsWith("!admin")) {
@@ -537,7 +539,9 @@ function reloadCoolDown() {
                 addPoints(guildID, guilds[guildID].weekMessageChanel);
             }
         }
-        reloadCoolDown();
+        setTimeout(function () {
+            reloadCoolDown();
+        }, 100);
     }, waitTime);
 }
 async function addPoints(guildID, channelID) {
@@ -568,11 +572,14 @@ async function addPoints(guildID, channelID) {
 function weekMessage() {
     var today = new Date();
     var sunday = new Date();
-    sunday.setDate(today.getDate() + (6/*last day*/+(7-today.getDay())) % 7);
+    sunday.setDate(today.getDate() + (0/*last day*/+(7-today.getDay())) % 7);
     sunday.setHours(10);
     sunday.setMinutes(0);
     sunday.setSeconds(0);
     sunday.setMilliseconds(0);
+    if (sunday.getTime() - today.getTime()) {
+        sunday.setDate(sunday.getDate() + 7);
+    }
     var waitTime = sunday.getTime() - today.getTime();
     setTimeout(function () {
         for (var key in guilds) {
@@ -580,7 +587,9 @@ function weekMessage() {
                 weekLeaderboard(key, guilds[key].weekMessageChanel);
             }
         }
-        weekMessage();
+        setTimeout(function () {
+            weekMessage();
+        }, 100);
     }, waitTime);
 }
 async function weekLeaderboard(guildID, channelID) {
