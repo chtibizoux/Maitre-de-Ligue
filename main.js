@@ -305,7 +305,6 @@ bot.on('message', (message) => {
                 "`!admin-modify-points <count>` Ajouter ou retirer des ⚔️ à tout le monde\n" +
                 "`!admin-channel <channel>` Modifier le salon de la leaderboard hebdomadaire");
         }else if (message.content.startsWith("!admin-channel")) {
-            console.log(message.content.split(" ").length);
             if (message.content.split(" ").length === 2) {
                 guilds[message.guild.id].weekMessageChanel = message.content.split(" ")[1].replace("<#", "").replace(">", "");
                 fs.writeFileSync('./guilds.json', JSON.stringify(guilds));
@@ -545,14 +544,12 @@ function reloadCoolDown() {
     }, waitTime);
 }
 async function addPoints(guildID, channelID) {
-    console.log("addPoints");
     var guild = await bot.guilds.fetch(guildID);
     var channel = guild.channels.cache.get(channelID);
     if (!guildID in guilds) guilds[guildID] = {maxrarity: 0,objects: {},users: {}};
     var usersInOrder = [];
     for (var key in guilds[guildID].users) {
         guilds[guildID].users[key].points += 50;
-        console.log(guilds[guildID].users[key].points);
         var count = usersInOrder.length;
         for (var i = 0; i < usersInOrder.length; i++) {
             if (guilds[guildID].users[key].points > guilds[guildID].users[usersInOrder[i]].points) {
