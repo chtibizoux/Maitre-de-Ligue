@@ -589,7 +589,8 @@ async function addPoints(guildID, channelID) {
             }
         }
         var randomObject = objects[Math.floor(Math.random() * objects.length)];
-        guilds[guildID].users[user].points += Math.floor(Math.random() * 10) * 10;
+        var points = Math.floor(Math.random() * 10) * 10
+        guilds[guildID].users[user].points += points;
         if (randomObject in guilds[guildID].users[user].objects) {
             guilds[guildID].users[user].objects[randomObject] += 1;
         } else {
