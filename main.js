@@ -446,8 +446,12 @@ async function leaderboard(message) {
             usersInOrder.splice(count, 0, key);
         }
         for (var i = 0; i < usersInOrder.length; i++) {
-            const member = await message.guild.members.fetch(usersInOrder[i]);
-            msg += (i + 1) + ". " + member.user.username + " avec " + guilds[guildID].users[usersInOrder[i]].points + " ⚔️\n";
+            try {
+                const member = await message.guild.members.fetch(usersInOrder[i]);
+                msg += (i + 1) + ". " + member.user.username + " avec " + guilds[guildID].users[usersInOrder[i]].points + " ⚔️\n";
+            } catch (e) {
+                console.error(e);
+            }
         }
         message.channel.send(msg);
     }else {
@@ -465,14 +469,22 @@ async function leaderboard(message) {
         }
         if (usersInOrder.length > 10) { 
             for (var i = 0; i < 10; i++) {
-                const member = await message.guild.members.fetch(usersInOrder[i]);
-                msg += (i + 1) + ". " + member.user.username + " avec " + guilds[guildID].users[usersInOrder[i]].points + " ⚔️\n";
+                try {
+                    const member = await message.guild.members.fetch(usersInOrder[i]);
+                    msg += (i + 1) + ". " + member.user.username + " avec " + guilds[guildID].users[usersInOrder[i]].points + " ⚔️\n";
+                } catch (e) {
+                    console.error(e);
+                }
             }
             msg += "*La leaderboard entière est ici: `!l a` ou `!leaderboard all`*";
         } else {
             for (var i = 0; i < usersInOrder.length; i++) {
-                const member = await message.guild.members.fetch(usersInOrder[i]);
-                msg += (i + 1) + ". " + member.user.username + " avec " + guilds[guildID].users[usersInOrder[i]].points + " ⚔️\n";
+                try {
+                    const member = await message.guild.members.fetch(usersInOrder[i]);
+                    msg += (i + 1) + ". " + member.user.username + " avec " + guilds[guildID].users[usersInOrder[i]].points + " ⚔️\n";
+                } catch (e) {
+                    console.error(e);
+                }
             }
         }
         message.channel.send(msg);
@@ -491,7 +503,7 @@ function use(message, action, options, userID) {
                 }else {
                     message.channel.send("Il n'y a pas de role `Muted` sur le serveur...");
                 }
-            });
+            }).error(console.error);
             fs.writeFileSync('./guilds.json', JSON.stringify(guilds));
             message.channel.send("<@" + userID + "> a été mute pendant " + options.minutes + " minutes");
             setTimeout(unMute, guilds[message.guild.id].users[userID].unmuteTime - new Date().getTime());
@@ -544,27 +556,31 @@ function reloadCoolDown() {
     }, waitTime);
 }
 async function addPoints(guildID, channelID) {
-    var guild = await bot.guilds.fetch(guildID);
-    var channel = guild.channels.cache.get(channelID);
-    if (!guildID in guilds) guilds[guildID] = {maxrarity: 0,objects: {},users: {}};
-    var usersInOrder = [];
-    for (var key in guilds[guildID].users) {
-        guilds[guildID].users[key].points += 50;
-        var count = usersInOrder.length;
-        for (var i = 0; i < usersInOrder.length; i++) {
-            if (guilds[guildID].users[key].points > guilds[guildID].users[usersInOrder[i]].points) {
-                count = i;
-                break;
+    try {
+        var guild = await bot.guilds.fetch(guildID);
+        var channel = guild.channels.cache.get(channelID);
+        if (!guildID in guilds) guilds[guildID] = { maxrarity: 0, objects: {}, users: {} };
+        var usersInOrder = [];
+        for (var key in guilds[guildID].users) {
+            guilds[guildID].users[key].points += 50;
+            var count = usersInOrder.length;
+            for (var i = 0; i < usersInOrder.length; i++) {
+                if (guilds[guildID].users[key].points > guilds[guildID].users[usersInOrder[i]].points) {
+                    count = i;
+                    break;
+                }
             }
+            usersInOrder.splice(count, 0, key);
         }
-        usersInOrder.splice(count, 0, key);
+        if (usersInOrder.length >= 3) {
+            guilds[guildID].users[usersInOrder[0]].points -= 30;
+            guilds[guildID].users[usersInOrder[1]].points -= 20;
+            guilds[guildID].users[usersInOrder[2]].points -= 10;
+        }
+        channel.send("Tout le monde a recu 50 ⚔️. A part <@" + usersInOrder[0] + "> Qui à recu 20 ⚔️, <@" + usersInOrder[1] + "> Qui à recu 30 ⚔️ et <@" + usersInOrder[2] + "> Qui à recu 40 ⚔️");
+    } catch (e) {
+        console.error(e);
     }
-    if (usersInOrder.length >= 3) {
-        guilds[guildID].users[usersInOrder[0]].points -= 30;
-        guilds[guildID].users[usersInOrder[1]].points -= 20;
-        guilds[guildID].users[usersInOrder[2]].points -= 10;
-    }
-    channel.send("Tout le monde a recu 50 ⚔️. A part <@" + usersInOrder[0] + "> Qui à recu 20 ⚔️, <@" + usersInOrder[1] + "> Qui à recu 30 ⚔️ et <@" + usersInOrder[2] + "> Qui à recu 40 ⚔️");
 }
 function weekMessage() {
     var today = new Date();
@@ -590,34 +606,38 @@ function weekMessage() {
     }, waitTime);
 }
 async function weekLeaderboard(guildID, channelID) {
-    var guild = await bot.guilds.fetch(guildID);
-    var channel = guild.channels.cache.get(channelID);
-    if (!guildID in guilds) guilds[guildID] = {maxrarity: 0,objects: {},users: {}};
-    var msg = "__**Leader board de la semaine:**__\n";
-    var usersInOrder = [];
-    for (var key in guilds[guildID].users) {
-        var count = usersInOrder.length;
-        for (var i = 0; i < usersInOrder.length; i++) {
-            if (guilds[guildID].users[key].points > guilds[guildID].users[usersInOrder[i]].points) {
-                count = i;
-                break;
+    try {
+        var guild = await bot.guilds.fetch(guildID);
+        var channel = guild.channels.cache.get(channelID);
+        if (!guildID in guilds) guilds[guildID] = {maxrarity: 0,objects: {},users: {}};
+        var msg = "__**Leader board de la semaine:**__\n";
+        var usersInOrder = [];
+        for (var key in guilds[guildID].users) {
+            var count = usersInOrder.length;
+            for (var i = 0; i < usersInOrder.length; i++) {
+                if (guilds[guildID].users[key].points > guilds[guildID].users[usersInOrder[i]].points) {
+                    count = i;
+                    break;
+                }
+            }
+            usersInOrder.splice(count, 0, key);
+        }
+        if (usersInOrder.length > 10) {
+            for (var i = 0; i < 10; i++) {
+                const member = await guild.members.fetch(usersInOrder[i]);
+                msg += (i + 1) + ". " + member.user.username + " avec " + guilds[guildID].users[usersInOrder[i]].points + " ⚔️\n";
+            }
+            msg += "*La leaderboard entière est ici: `!l a` ou `!leaderboard all`*";
+        } else {
+            for (var i = 0; i < usersInOrder.length; i++) {
+                const member = await guild.members.fetch(usersInOrder[i]);
+                msg += (i + 1) + ". " + member.user.username + " avec " + guilds[guildID].users[usersInOrder[i]].points + " ⚔️\n";
             }
         }
-        usersInOrder.splice(count, 0, key);
+        channel.send(msg);
+    } catch (e) {
+        console.error(e);
     }
-    if (usersInOrder.length > 10) {
-        for (var i = 0; i < 10; i++) {
-            const member = await guild.members.fetch(usersInOrder[i]);
-            msg += (i + 1) + ". " + member.user.username + " avec " + guilds[guildID].users[usersInOrder[i]].points + " ⚔️\n";
-        }
-        msg += "*La leaderboard entière est ici: `!l a` ou `!leaderboard all`*";
-    } else {
-        for (var i = 0; i < usersInOrder.length; i++) {
-            const member = await guild.members.fetch(usersInOrder[i]);
-            msg += (i + 1) + ". " + member.user.username + " avec " + guilds[guildID].users[usersInOrder[i]].points + " ⚔️\n";
-        }
-    }
-    channel.send(msg);
 }
 function unMuteTimeout() {
     for (var guildID in guilds) {
@@ -636,11 +656,15 @@ async function unMute() {
                 if (guilds[guildID].users[userID].unmuteTime <= new Date().getTime()) {
                     delete guilds[guildID].users[userID].unmuteTime;
                     fs.writeFileSync('./guilds.json', JSON.stringify(guilds));
-                    var guild = await bot.guilds.fetch(guildID);
-                    var member = await guild.members.fetch(userID);
-                    if (guild.roles.cache.find(role => role.name === "Muted")) {
-                        var muted = guild.roles.cache.find(role => role.name === "Muted");
-                        member.roles.remove(muted.id);
+                    try {
+                        var guild = await bot.guilds.fetch(guildID);
+                        var member = await guild.members.fetch(userID);
+                        if (guild.roles.cache.find(role => role.name === "Muted")) {
+                            var muted = guild.roles.cache.find(role => role.name === "Muted");
+                            member.roles.remove(muted.id);
+                        }
+                    } catch (e) {
+                        console.error(e);
                     }
                 }
             }
