@@ -428,6 +428,10 @@ bot.on('message', (message) => {
             }else {
                 message.channel.send("La commande n'est pas valide");
             }
+        }else if (message.content.startsWith("!admin-daily-msg")) {
+            addPoints(message.guild.id, message.channel.id)
+        }else if (message.content.startsWith("!admin-weekly-msg")) {
+            weekLeaderboard(message.guild.id, message.channel.id)
         }
     }
 });
@@ -562,7 +566,6 @@ async function addPoints(guildID, channelID) {
         if (!guildID in guilds) guilds[guildID] = { maxrarity: 0, objects: {}, users: {} };
         var usersInOrder = [];
         for (var key in guilds[guildID].users) {
-            guilds[guildID].users[key].points += 50;
             var count = usersInOrder.length;
             for (var i = 0; i < usersInOrder.length; i++) {
                 if (guilds[guildID].users[key].points > guilds[guildID].users[usersInOrder[i]].points) {
@@ -573,11 +576,26 @@ async function addPoints(guildID, channelID) {
             usersInOrder.splice(count, 0, key);
         }
         if (usersInOrder.length >= 3) {
-            guilds[guildID].users[usersInOrder[0]].points -= 30;
-            guilds[guildID].users[usersInOrder[1]].points -= 20;
-            guilds[guildID].users[usersInOrder[2]].points -= 10;
+            guilds[guildID].users[usersInOrder[0]].points -= 50;
+            guilds[guildID].users[usersInOrder[1]].points -= 30;
+            guilds[guildID].users[usersInOrder[2]].points -= 20;
         }
-        channel.send("Tout le monde a recu 50 ⚔️. A part <@" + usersInOrder[0] + "> Qui à recu 20 ⚔️, <@" + usersInOrder[1] + "> Qui à recu 30 ⚔️ et <@" + usersInOrder[2] + "> Qui à recu 40 ⚔️");
+        channel.send("<@" + usersInOrder[0] + "> à perdu 50 ⚔️, <@" + usersInOrder[1] + "> à perdu 30 ⚔️ et <@" + usersInOrder[2] + "> à perdu 20 ⚔️ car ils sont les 3 premiers joueurs");
+        var user = usersInOrder[Math.floor(Math.random() * usersInOrder.length)];
+        var objects = [];
+        for (var key in guilds[guildID].objects) {
+            for (var i = 0; i < guilds[guildID].maxrarity - guilds[guildID].objects[key].rarity; i++) {
+                objects.push(key);
+            }
+        }
+        var randomObject = objects[Math.floor(Math.random() * objects.length)];
+        guilds[guildID].users[user].points += Math.floor(Math.random() * 10) * 10;
+        if (randomObject in guilds[guildID].users[user].objects) {
+            guilds[guildID].users[user].objects[randomObject] += 1;
+        } else {
+            guilds[guildID].users[user].objects[randomObject] = 1;
+        }
+        channel.send("<@" + user + "> as gagné un(e) " + randomObject + " et " + points + " ⚔️");
     } catch (e) {
         console.error(e);
     }
